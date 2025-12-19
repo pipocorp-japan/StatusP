@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Developer Documentation - Status System</title>
+    <style>
+        body { font-family: monospace; line-height: 1.6; max-width: 800px; margin: 20px auto; padding: 0 20px; }
+        h1 { border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        h2 { margin-top: 40px; background-color: #eee; padding: 5px; }
+        h3 { margin-top: 20px; text-decoration: underline; }
+        pre { background: #f4f4f4; padding: 15px; border: 1px solid #ddd; overflow-x: auto; }
+        code { background: #e0e0e0; padding: 2px 4px; border-radius: 3px; }
+        ul { margin-bottom: 20px; }
+        li { margin-bottom: 5px; }
+        .note { color: #d00; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>Status System 開発者ドキュメント</h1>
+    <p>このドキュメントは、ステータス確認ページで使用されるJSONファイルの仕様とディレクトリ構造について説明します。</p>
+
+    <h2>1. ディレクトリ構造</h2>
+    <pre>
+root/
+ │
+ ├─ index.html       (ユーザー向け表示ページ)
+ ├─ app.json         (アプリ一覧定義)
+ │
+ ├─ [アプリIDディレクトリ] (例: pAI)
+ │   ├─ info.json    (現在のステータス値)
+ │   └─ property.json(表示項目の定義)
+ │
+ └─ ... (他のアプリディレクトリ)
+    </pre>
+
+    <h2>2. ファイル仕様</h2>
+
+    <h3>app.json (ルート直下)</h3>
+    <p>ステータス確認ページの一覧に表示されるアプリを定義します。</p>
+    <pre>
+[
+  {
+    "anH": "pipo AI",      // 人間に表示するアプリ名 (AppNameHuman)
+    "anC": "pAI"           // ディレクトリ名/ID (AppNameComputer)
+  },
+  {
+    "anH": "Search Sys",
+    "anC": "search-sys"
+  }
+]
+    </pre>
+
+    <h3>property.json (アプリディレクトリ内)</h3>
+    <p>そのアプリで表示すべき詳細項目を定義します。<code>info.json</code>のキーと対応させます。</p>
+    <ul>
+        <li><code>type</code>: <strong>"boolean"</strong> (緑/赤で表示) または <strong>"number"</strong> (ステータスコードとして判定)</li>
+        <li><code>icon</code>: Google Material Symbols のアイコン名を指定</li>
+    </ul>
+    <pre>
+[
+  {
+    "name": "invokellm",   // info.jsonのキー名
+    "nameH": "AI機能",     // 画面表示名
+    "type": "boolean",     // boolean または number
+    "icon": "smart_toy"    // Material Icon名
+  },
+  {
+    "name": "webpage",
+    "nameH": "Web ページ",
+    "type": "number",
+    "icon": "language"
+  }
+]
+    </pre>
+
+    <h3>info.json (アプリディレクトリ内)</h3>
+    <p>実際のステータス値です。cron等で定期的に更新してください。</p>
+    <ul>
+        <li><code>status</code> と <code>last_updated</code> は<strong>必須</strong>です。</li>
+        <li>それ以外のキーは <code>property.json</code> で定義したものを含めます。</li>
+    </ul>
+    <pre>
+{
+  "status": 0,                          // 全体のメインステータス
+  "last_updated": "2025-12-19-11-09-05", // yyyy-mm-dd-hh-mm-ss 形式
+
+  // 以下、property.jsonで定義した動的項目
+  "invokellm": true,
+  "webpage": 0
+}
+    </pre>
+
+    <h2>3. ステータスコード定義</h2>
+    <p><code>status</code> や <code>type: "number"</code> の項目で使用する数値の意味です。</p>
+
+    <table border="1" cellspacing="0" cellpadding="8" style="width:100%; text-align:left;">
+        <tr style="background:#eee;">
+            <th>値 (整数部)</th>
+            <th>意味</th>
+            <th>小数の扱い (例: 1.1)</th>
+        </tr>
+        <tr>
+            <td><code>0</code></td>
+            <td><strong>正常動作中</strong> (Green)</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td><code>1</code></td>
+            <td><strong>停止</strong> (Red)</td>
+            <td>小数の場合：<strong>「調査中」</strong>と表示<br>整数の場合：「未着手」扱い</td>
+        </tr>
+        <tr>
+            <td><code>2</code></td>
+            <td><strong>一部停止</strong> (Orange)</td>
+            <td>小数の場合：<strong>「調査中」</strong>と表示</td>
+        </tr>
+        <tr>
+            <td><code>3</code></td>
+            <td><strong>メンテナンス中</strong> (Blue)</td>
+            <td>-</td>
+        </tr>
+    </table>
+
+    <br>
+    <p class="note">※ 更新頻度: 約2週間ごと（HTML上に記載あり）</p>
+</body>
+</html>

@@ -1,6 +1,6 @@
 {
   "status": 0,
-  "invokellm_available": true,
-  "webpage_status": 0,
+  "invokellm": true,
+  "webpage": 0,
   "last_updated": "2025-12-19-11-09-05"
 }

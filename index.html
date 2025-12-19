@@ -55,7 +55,7 @@
 
         .container {
             width: 100%;
-            max-width: 600px; /* 一覧が見やすいように少し広げました */
+            max-width: 600px;
             position: relative;
         }
 
@@ -242,11 +242,20 @@
             font-size: 14px;
         }
 
-        .last-updated {
+        .footer-info {
             margin-top: 24px;
             text-align: right;
-            font-size: 12px;
             color: var(--md-sys-color-outline);
+        }
+
+        .last-updated {
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+        
+        .update-notice {
+            font-size: 11px;
+            opacity: 0.8;
         }
 
         button.primary-btn {
@@ -271,6 +280,7 @@
         .text-green { color: var(--status-green-fg); }
         .text-red { color: var(--status-red-fg); }
         .text-blue { color: var(--status-blue-fg); }
+        .text-orange { color: var(--status-orange-fg); }
         .text-gray { color: var(--md-sys-color-outline); }
 
     </style>
@@ -285,7 +295,6 @@
             <h1>ステータス確認</h1>
             <p class="subtitle">確認したいサービスを選択してください</p>
             
-            <!-- ここにJSでボタンが生成されます -->
             <div id="app-list-container" class="app-grid">
                 <div class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></div>
             </div>
@@ -306,7 +315,6 @@
         <!-- 3. Status Display View -->
         <div id="status-view" class="card hidden">
             <div class="status-header">
-                <!-- 人間に読みやすい名前を表示 -->
                 <div class="app-title" id="display-app-name">AppName</div>
                 <button onclick="resetView()" class="back-btn">
                     <span class="material-symbols-rounded">arrow_back</span>
@@ -314,33 +322,25 @@
                 </button>
             </div>
 
-            <!-- Main Status Indicator -->
+            <!-- Main Status Indicator (Fixed) -->
             <div id="main-status-badge" class="status-badge-large color-green">
                 <span class="material-symbols-rounded status-icon" id="main-status-icon">check_circle</span>
                 <div class="status-text-main" id="main-status-text">正常動作中</div>
                 <div class="status-subtext" id="main-status-detail">全てのシステムは正常です</div>
             </div>
 
-            <!-- Detail Grid -->
-            <div class="info-grid">
-                <div class="info-item">
-                    <span class="info-label">
-                        <span class="material-symbols-rounded">smart_toy</span>
-                        InvokeLLM
-                    </span>
-                    <span id="invokellm-status" class="info-value text-green">Available</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">
-                        <span class="material-symbols-rounded">language</span>
-                        Web Page
-                    </span>
-                    <span id="webpage-status" class="info-value text-green">Normal</span>
-                </div>
+            <!-- Detail Grid (Dynamic) -->
+            <div id="dynamic-info-grid" class="info-grid">
+                <!-- Javascript will inject items here based on property.json -->
             </div>
 
-            <div class="last-updated">
-                最終更新: <span id="last-updated-time">----/--/-- --:--:--</span>
+            <div class="footer-info">
+                <div class="last-updated">
+                    最終更新: <span id="last-updated-time">----/--/-- --:--:--</span>
+                </div>
+                <div class="update-notice">
+                    ※ステータス更新は約2週間ごとに行われます。
+                </div>
             </div>
         </div>
         
@@ -368,6 +368,7 @@
         const errorView = document.getElementById('error-view');
         const listContainer = document.getElementById('app-list-container');
         const listError = document.getElementById('app-list-error');
+        const dynamicGrid = document.getElementById('dynamic-info-grid');
 
         // Initial Load
         window.addEventListener('load', () => {
@@ -375,14 +376,9 @@
             const app = params.get('app');
 
             if (app) {
-                // URL指定がある場合は直接ステータス確認へ
-                // (名前がわからないので、とりあえずIDを表示名として渡すか、
-                // 必要ならここでapp.jsonをフェッチして名前解決することも可能ですが
-                // 簡略化のためIDを使用します)
                 const decodedApp = decodeURIComponent(app);
-                fetchStatus(decodedApp, decodedApp); // 第2引数は表示名
+                fetchStatus(decodedApp, decodedApp); // 第2引数は表示名(仮)
             } else {
-                // 指定がなければ一覧を読み込む
                 loadAppList();
             }
         });
@@ -390,11 +386,9 @@
         // 1. Load App List from app.json
         async function loadAppList() {
             listError.classList.add('hidden');
-            // スピナー表示
             listContainer.innerHTML = '<div class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></div>';
 
             try {
-                // キャッシュ回避のタイムスタンプ付与
                 const res = await fetch(`./app.json?t=${Date.now()}`);
                 if (!res.ok) throw new Error(`app.json load failed: ${res.status}`);
                 
@@ -403,28 +397,25 @@
 
             } catch (e) {
                 console.error(e);
-                listContainer.innerHTML = ''; // クリア
+                listContainer.innerHTML = '';
                 listError.classList.remove('hidden');
             }
         }
 
         function renderAppList(apps) {
-            listContainer.innerHTML = ''; // クリア
+            listContainer.innerHTML = ''; 
 
             apps.forEach(app => {
-                // app = { anH: "表示名", anC: "ディレクトリID" }
-                
                 const btn = document.createElement('button');
                 btn.className = 'app-btn';
                 btn.onclick = () => selectApp(app.anC, app.anH);
 
-                // アイコン (固定ですが、jsonにicon指定があればそれを使うよう拡張可能)
                 const icon = document.createElement('span');
                 icon.className = 'material-symbols-rounded';
-                icon.innerText = 'apps'; // デフォルトアイコン
+                icon.innerText = 'apps'; 
                 
                 const label = document.createElement('span');
-                label.innerText = app.anH; // 人間に表示する名前
+                label.innerText = app.anH; 
 
                 btn.appendChild(icon);
                 btn.appendChild(label);
@@ -435,32 +426,25 @@
 
         // 2. Select App Logic
         function selectApp(appId, appNameHuman) {
-            // URLを更新 (?app=ID)
             const url = new URL(window.location);
-            // URLにはID (anC) を入れる
             url.searchParams.set('app', encodeURIComponent(appId));
             window.history.pushState({}, '', url);
 
-            // ステータス取得開始 (表示名には anH を渡す)
             fetchStatus(appId, appNameHuman);
         }
 
         function resetView() {
-            // URLパラメータ削除
             const url = new URL(window.location);
             url.searchParams.delete('app');
             window.history.pushState({}, '', url);
 
-            // 一覧がまだ読み込まれていない、あるいは消えている場合は再読み込み
             if (listContainer.children.length === 0 || listContainer.querySelector('.spinner')) {
                 loadAppList();
             }
-            
             showView('selector');
         }
 
         function showView(viewName) {
-            // 全非表示
             [selectorView, loadingView, statusView, errorView].forEach(el => {
                 el.classList.add('hidden');
                 el.classList.remove('fade-in');
@@ -474,31 +458,47 @@
 
             if (target) {
                 target.classList.remove('hidden');
-                void target.offsetWidth; // リフロー
+                void target.offsetWidth; 
                 if(viewName !== 'loading') target.classList.add('fade-in');
             }
         }
 
-        // 3. Fetch Status
+        // 3. Fetch Status (Info & Properties)
         async function fetchStatus(appId, displayName) {
             showView('loading');
             
             const safeAppId = encodeURIComponent(appId);
-            const targetUrl = `https://pipocorp-japan.github.io/StatusP/${safeAppId}/info.json`;
+            const baseUrl = `https://pipocorp-japan.github.io/StatusP/${safeAppId}`;
+            const infoUrl = `${baseUrl}/info.json`;
+            const propUrl = `${baseUrl}/property.json`; // プロパティ定義を取得
 
             try {
-                const response = await fetch(`${targetUrl}?t=${Date.now()}`);
+                const timestamp = Date.now();
                 
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        throw new Error(`指定されたID (${appId}) の情報が見つかりません。`);
-                    }
-                    throw new Error(`サーバーエラー (Status: ${response.status})`);
+                // info.json と property.json を並行して取得
+                const [infoRes, propRes] = await Promise.all([
+                    fetch(`${infoUrl}?t=${timestamp}`),
+                    fetch(`${propUrl}?t=${timestamp}`)
+                ]);
+                
+                if (!infoRes.ok) {
+                    if (infoRes.status === 404) throw new Error(`指定されたID (${appId}) の情報が見つかりません。`);
+                    throw new Error(`サーバーエラー (Status: ${infoRes.status})`);
                 }
 
-                const data = await response.json();
-                // データの表示 (表示名を使用)
-                renderStatus(displayName, data);
+                const infoData = await infoRes.json();
+                
+                // property.json は必須ではない、または失敗しても表示は続けるようにするならここを調整
+                // 今回は「いじって変えれるように」とのことなので、取得成功を前提とします。
+                // 失敗時は空配列として扱います。
+                let propData = [];
+                if (propRes.ok) {
+                    propData = await propRes.json();
+                } else {
+                    console.warn("property.json not found or invalid. Showing basic status only.");
+                }
+
+                renderStatus(displayName, infoData, propData);
                 showView('status');
 
             } catch (error) {
@@ -508,12 +508,12 @@
             }
         }
 
-        function renderStatus(displayName, data) {
+        function renderStatus(displayName, infoData, propData) {
             // タイトル設定
             document.getElementById('display-app-name').innerText = displayName;
 
-            // メインステータス
-            const statusInfo = getStatusInfo(data.status);
+            // --- 1. 固定のメインステータス (status) ---
+            const statusInfo = getStatusInfo(infoData.status);
             const badge = document.getElementById('main-status-badge');
             
             badge.className = 'status-badge-large ' + statusInfo.colorClass;
@@ -521,28 +521,64 @@
             document.getElementById('main-status-text').innerText = statusInfo.text;
             document.getElementById('main-status-detail').innerText = statusInfo.desc;
 
-            // InvokeLLM
-            const llmEl = document.getElementById('invokellm-status');
-            if (data.invokellm_available) {
-                llmEl.innerText = '使用可能';
-                llmEl.className = 'info-value text-green';
+            // --- 2. 動的な詳細プロパティの生成 ---
+            dynamicGrid.innerHTML = ''; // クリア
+
+            if (propData && propData.length > 0) {
+                propData.forEach(prop => {
+                    // prop = { name: "key", nameH: "表示名", type: "boolean/number", icon: "icon_name" }
+                    const value = infoData[prop.name];
+                    
+                    if (value === undefined) return; // データがない場合はスキップ
+
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'info-item';
+
+                    // ラベル部分
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'info-label';
+                    labelSpan.innerHTML = `<span class="material-symbols-rounded">${prop.icon || 'info'}</span> ${prop.nameH}`;
+
+                    // 値部分
+                    const valueSpan = document.createElement('span');
+                    valueSpan.className = 'info-value';
+
+                    if (prop.type === 'boolean') {
+                        if (value === true) {
+                            valueSpan.innerText = '使用可能'; // または '有効'
+                            valueSpan.className += ' text-green';
+                        } else {
+                            valueSpan.innerText = '使用不可'; // または '無効'
+                            valueSpan.className += ' text-red';
+                        }
+                    } else if (prop.type === 'number') {
+                        const sInfo = getStatusInfo(value);
+                        valueSpan.innerText = sInfo.text;
+                        
+                        // 簡易色分け
+                        const code = Math.floor(parseFloat(value));
+                        if (code === 0) valueSpan.className += ' text-green';
+                        else if (code === 1) valueSpan.className += ' text-red';
+                        else if (code === 2) valueSpan.className += ' text-orange';
+                        else if (code === 3) valueSpan.className += ' text-blue';
+                        else valueSpan.className += ' text-gray';
+                    } else {
+                        // 文字列などその他の場合
+                        valueSpan.innerText = value;
+                        valueSpan.className += ' text-gray';
+                    }
+
+                    itemDiv.appendChild(labelSpan);
+                    itemDiv.appendChild(valueSpan);
+                    dynamicGrid.appendChild(itemDiv);
+                });
             } else {
-                llmEl.innerText = '使用不可';
-                llmEl.className = 'info-value text-red';
+                // プロパティがない場合のメッセージ（必要なら）
+                // dynamicGrid.innerHTML = '<p style="color:#999; font-size:12px;">詳細情報はありません</p>';
             }
 
-            // WebPage
-            const webEl = document.getElementById('webpage-status');
-            const webStatusInfo = getStatusInfo(data.webpage_status);
-            webEl.innerText = webStatusInfo.text;
-            
-            const webCode = Math.floor(parseFloat(data.webpage_status));
-            if (webCode === 0) webEl.className = 'info-value text-green';
-            else if (webCode === 3) webEl.className = 'info-value text-blue';
-            else webEl.className = 'info-value text-red';
-
-            // 日時
-            const dateStr = data.last_updated || "";
+            // --- 3. 最終更新日時 ---
+            const dateStr = infoData.last_updated || "";
             const parts = dateStr.split('-');
             
             if (parts.length >= 6) {

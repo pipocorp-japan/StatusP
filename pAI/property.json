@@ -1,0 +1,14 @@
+[
+  {
+    "name": "invokellm",
+    "nameH": "AI機能",
+    "type": "boolean",
+    "icon": "smart_toy"
+  },
+  {
+    "name": "webpage",
+    "nameH": "Web ページ",
+    "type": "number",
+    "icon": "language"
+  }
+]
