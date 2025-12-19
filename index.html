@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Status Check</title>
+    
+    <!-- Google Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+
+    <style>
+        :root {
+            /* Material Design 3 Token-like variables */
+            --md-sys-color-primary: #006495;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-surface: #f8f9ff;
+            --md-sys-color-surface-container: #ffffff;
+            --md-sys-color-on-surface: #191c20;
+            --md-sys-color-outline: #72777f;
+            
+            /* Status Colors */
+            --status-green-bg: #dcfce7;
+            --status-green-fg: #14532d;
+            --status-red-bg: #fee2e2;
+            --status-red-fg: #7f1d1d;
+            --status-orange-bg: #ffedd5;
+            --status-orange-fg: #7c2d12;
+            --status-blue-bg: #dbeafe;
+            --status-blue-fg: #1e3a8a;
+            --status-gray-bg: #f3f4f6;
+            --status-gray-fg: #4b5563;
+
+            --radius-lg: 24px;
+            --radius-md: 12px;
+            --shadow-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            --shadow-2: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            position: relative;
+        }
+
+        /* --- Animations --- */
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* --- App Selector View --- */
+        .card {
+            background: var(--md-sys-color-surface-container);
+            border-radius: var(--radius-lg);
+            padding: 32px 24px;
+            box-shadow: var(--shadow-1);
+            text-align: center;
+            transition: box-shadow 0.3s ease;
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            text-align: left;
+        }
+
+        label {
+            font-size: 14px;
+            color: var(--md-sys-color-outline);
+            margin-left: 4px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 16px;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus {
+            border-color: var(--md-sys-color-primary);
+            border-width: 2px;
+            padding: 15px; /* adjust for border width */
+        }
+
+        button.primary-btn {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border: none;
+            padding: 14px 24px;
+            border-radius: 100px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: opacity 0.2s;
+        }
+        button.primary-btn:hover {
+            opacity: 0.9;
+            box-shadow: var(--shadow-2);
+        }
+
+        /* --- Loading View --- */
+        #loading-view {
+            text-align: center;
+            padding: 40px;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #e0e0e0;
+            border-top: 5px solid var(--md-sys-color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- Status Result View --- */
+        .status-header {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .app-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--md-sys-color-on-surface);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 250px;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--md-sys-color-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            padding: 8px;
+        }
+        .back-btn:hover {
+            text-decoration: underline;
+        }
+
+        /* Status Cards */
+        .status-badge-large {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            border-radius: var(--radius-md);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        
+        .status-icon {
+            font-size: 48px !important;
+            margin-bottom: 12px;
+        }
+        
+        .status-text-main {
+            font-size: 22px;
+            font-weight: 700;
+        }
+        
+        .status-subtext {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        .info-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .info-item {
+            background: #f0f4f8;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .info-label {
+            font-size: 14px;
+            color: var(--md-sys-color-on-surface);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-value {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .last-updated {
+            margin-top: 24px;
+            text-align: right;
+            font-size: 12px;
+            color: var(--md-sys-color-outline);
+        }
+
+        /* Color Modifiers */
+        .color-green { background-color: var(--status-green-bg); color: var(--status-green-fg); }
+        .color-red { background-color: var(--status-red-bg); color: var(--status-red-fg); }
+        .color-orange { background-color: var(--status-orange-bg); color: var(--status-orange-fg); }
+        .color-blue { background-color: var(--status-blue-bg); color: var(--status-blue-fg); }
+        .color-gray { background-color: var(--status-gray-bg); color: var(--status-gray-fg); }
+        
+        .text-green { color: var(--status-green-fg); }
+        .text-red { color: var(--status-red-fg); }
+        .text-blue { color: var(--status-blue-fg); }
+        .text-gray { color: var(--md-sys-color-outline); }
+
+    </style>
+</head>
+<body>
+
+    <main class="container">
+        
+        <!-- 1. App Selector View -->
+        <div id="selector-view" class="card fade-in">
+            <span class="material-symbols-rounded" style="font-size: 48px; color: var(--md-sys-color-primary); margin-bottom: 16px;">dns</span>
+            <h1>ステータス確認</h1>
+            <div class="input-group">
+                <label for="app-name-input">アプリID / 名前を入力</label>
+                <!-- Enterキー対応を追加 -->
+                <input type="text" id="app-name-input" placeholder="例: my-app-01" onkeydown="handleInputKey(event)">
+                <button onclick="startCheck()" class="primary-btn">
+                    確認する
+                    <span class="material-symbols-rounded">arrow_forward</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. Loading View -->
+        <div id="loading-view" class="hidden">
+            <div class="spinner"></div>
+            <p>サーバーに問い合わせ中...</p>
+        </div>
+
+        <!-- 3. Status Display View -->
+        <div id="status-view" class="card hidden">
+            <div class="status-header">
+                <div class="app-title" id="display-app-name">AppName</div>
+                <button onclick="resetView()" class="back-btn">
+                    <span class="material-symbols-rounded">arrow_back</span>
+                    戻る
+                </button>
+            </div>
+
+            <!-- Main Status Indicator -->
+            <div id="main-status-badge" class="status-badge-large color-green">
+                <span class="material-symbols-rounded status-icon" id="main-status-icon">check_circle</span>
+                <div class="status-text-main" id="main-status-text">正常動作中</div>
+                <div class="status-subtext" id="main-status-detail">全てのシステムは正常です</div>
+            </div>
+
+            <!-- Detail Grid -->
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">
+                        <span class="material-symbols-rounded">smart_toy</span>
+                        InvokeLLM
+                    </span>
+                    <span id="invokellm-status" class="info-value text-green">Available</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">
+                        <span class="material-symbols-rounded">language</span>
+                        Web Page
+                    </span>
+                    <span id="webpage-status" class="info-value text-green">Normal</span>
+                </div>
+            </div>
+
+            <div class="last-updated">
+                最終更新: <span id="last-updated-time">----/--/-- --:--:--</span>
+            </div>
+        </div>
+        
+        <!-- Error Message View -->
+        <div id="error-view" class="card hidden" style="border-left: 5px solid #d32f2f;">
+            <div style="text-align: left;">
+                <h3 style="color: #d32f2f; margin: 0 0 12px 0; display: flex; align-items: center; gap:8px;">
+                    <span class="material-symbols-rounded">error</span>
+                    エラーが発生しました
+                </h3>
+                <p id="error-text" style="font-size: 14px; margin: 0 0 8px 0; line-height: 1.5;">情報の取得に失敗しました。</p>
+            </div>
+            <button onclick="resetView()" class="primary-btn" style="margin-top: 24px; background-color: #d32f2f; width: 100%;">
+                戻って再試行
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        // DOM Elements
+        const selectorView = document.getElementById('selector-view');
+        const loadingView = document.getElementById('loading-view');
+        const statusView = document.getElementById('status-view');
+        const errorView = document.getElementById('error-view');
+        const appInput = document.getElementById('app-name-input');
+
+        // Initial Load Check
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const app = params.get('app');
+
+            if (app) {
+                // デコードして表示
+                try {
+                    appInput.value = decodeURIComponent(app);
+                    fetchStatus(appInput.value);
+                } catch(e) {
+                    appInput.value = app;
+                    fetchStatus(app);
+                }
+            }
+        });
+
+        // Event Handler for Enter Key
+        function handleInputKey(event) {
+            if (event.key === 'Enter') {
+                startCheck();
+            }
+        }
+
+        // --- Core Functions ---
+
+        function startCheck() {
+            const appName = appInput.value.trim();
+            if (!appName) return alert('アプリ名を入力してください');
+            
+            // URLエンコードを行う (重要: スペースや記号対策)
+            const safeAppName = encodeURIComponent(appName);
+
+            // ブラウザのURLを更新（履歴に追加）
+            const url = new URL(window.location);
+            url.searchParams.set('app', safeAppName);
+            window.history.pushState({}, '', url);
+
+            fetchStatus(appName);
+        }
+
+        function resetView() {
+            // URLパラメータを削除
+            const url = new URL(window.location);
+            url.searchParams.delete('app');
+            window.history.pushState({}, '', url);
+
+            showView('selector');
+        }
+
+        function showView(viewName) {
+            // 全てのビューを非表示にし、アニメーションクラスをリセット
+            [selectorView, loadingView, statusView, errorView].forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('fade-in');
+            });
+
+            // 表示対象を選択
+            let target = null;
+            if (viewName === 'selector') target = selectorView;
+            else if (viewName === 'loading') target = loadingView;
+            else if (viewName === 'status') target = statusView;
+            else if (viewName === 'error') target = errorView;
+
+            if (target) {
+                target.classList.remove('hidden');
+                // リフローを強制してアニメーションを再始動させる
+                void target.offsetWidth; 
+                // loading以外はフェードインアニメーションを適用
+                if(viewName !== 'loading') {
+                    target.classList.add('fade-in');
+                }
+            }
+        }
+
+        async function fetchStatus(appName) {
+            showView('loading');
+            
+            // エンコード処理
+            const safeAppName = encodeURIComponent(appName);
+            const targetUrl = `https://pipocorp-japan.github.io/StatusP/${safeAppName}/info.json`;
+
+            try {
+                // タイムスタンプをつけてキャッシュ回避
+                const response = await fetch(`${targetUrl}?t=${new Date().getTime()}`);
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error(`アプリID "${appName}" が見つかりませんでした。\nIDが正しいか確認してください。`);
+                    }
+                    throw new Error(`サーバーエラーが発生しました (Status: ${response.status})`);
+                }
+
+                const data = await response.json();
+                renderStatus(appName, data);
+                showView('status');
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('error-text').innerText = error.message;
+                showView('error');
+            }
+        }
+
+        function renderStatus(appName, data) {
+            // アプリ名設定
+            document.getElementById('display-app-name').innerText = appName;
+
+            // 1. メインステータス判定
+            const statusInfo = getStatusInfo(data.status);
+            const badge = document.getElementById('main-status-badge');
+            
+            // クラスのリセットと適用
+            badge.className = 'status-badge-large ' + statusInfo.colorClass;
+
+            document.getElementById('main-status-icon').innerText = statusInfo.icon;
+            document.getElementById('main-status-text').innerText = statusInfo.text;
+            document.getElementById('main-status-detail').innerText = statusInfo.desc;
+
+            // 2. InvokeLLM ステータス
+            const llmEl = document.getElementById('invokellm-status');
+            if (data.invokellm_available) {
+                llmEl.innerText = '使用可能';
+                llmEl.className = 'info-value text-green';
+            } else {
+                llmEl.innerText = '使用不可';
+                llmEl.className = 'info-value text-red';
+            }
+
+            // 3. Webpage ステータス
+            const webEl = document.getElementById('webpage-status');
+            const webStatusInfo = getStatusInfo(data.webpage_status);
+            webEl.innerText = webStatusInfo.text;
+            
+            // Webpage用の簡易色分け
+            const webCode = Math.floor(parseFloat(data.webpage_status));
+            if (webCode === 0) webEl.className = 'info-value text-green';
+            else if (webCode === 3) webEl.className = 'info-value text-blue';
+            else webEl.className = 'info-value text-red';
+
+            // 4. 日時フォーマット (yyyy-mm-dd-hh-mm-ss 対応)
+            const dateStr = data.last_updated || "";
+            const parts = dateStr.split('-');
+            
+            if (parts.length >= 6) {
+                // yyyy/mm/dd hh:mm:ss 形式に変換
+                const fmtDate = `${parts[0]}/${parts[1]}/${parts[2]} ${parts[3]}:${parts[4]}:${parts[5]}`;
+                document.getElementById('last-updated-time').innerText = fmtDate;
+            } else {
+                // フォーマットが一致しない場合はそのまま表示
+                document.getElementById('last-updated-time').innerText = dateStr || "不明";
+            }
+        }
+
+        function getStatusInfo(statusCode) {
+            const code = parseFloat(statusCode);
+            // 数値でない場合は不明として扱う
+            if (isNaN(code)) {
+                return {
+                    text: '不明',
+                    desc: 'ステータス情報を取得できませんでした',
+                    colorClass: 'color-gray',
+                    icon: 'help'
+                };
+            }
+
+            const intCode = Math.floor(code);
+            const isDecimal = code % 1 !== 0;
+
+            let result = {
+                text: '不明',
+                desc: 'ステータスを判定できません',
+                colorClass: 'color-gray',
+                icon: 'help'
+            };
+
+            switch (intCode) {
+                case 0:
+                    result = {
+                        text: '正常動作中',
+                        desc: 'すべてのシステムが稼働しています',
+                        colorClass: 'color-green',
+                        icon: 'check_circle'
+                    };
+                    break;
+                case 1:
+                    result = {
+                        text: isDecimal ? '停止 (調査中)' : '停止',
+                        desc: isDecimal ? '現在、原因を調査しています' : '重大なエラーが発生しています (未着手)',
+                        colorClass: 'color-red',
+                        icon: 'error'
+                    };
+                    break;
+                case 2:
+                    result = {
+                        text: isDecimal ? '一部停止 (調査中)' : '一部停止',
+                        desc: '主要機能は使用可能ですが不安定です',
+                        colorClass: 'color-orange',
+                        icon: 'warning'
+                    };
+                    break;
+                case 3:
+                    result = {
+                        text: 'メンテナンス中',
+                        desc: '現在作業を行っています',
+                        colorClass: 'color-blue',
+                        icon: 'build'
+                    };
+                    break;
+            }
+            return result;
+        }
+
+    </script>
+</body>
+</html>
