@@ -20,6 +20,7 @@
             --md-sys-color-surface-container: #ffffff;
             --md-sys-color-on-surface: #191c20;
             --md-sys-color-outline: #72777f;
+            --md-sys-color-outline-variant: #c4c7c5;
             
             /* Status Colors */
             --status-green-bg: #dcfce7;
@@ -54,7 +55,7 @@
 
         .container {
             width: 100%;
-            max-width: 480px;
+            max-width: 600px; /* 一覧が見やすいように少し広げました */
             position: relative;
         }
 
@@ -83,58 +84,55 @@
         
         h1 {
             font-size: 24px;
-            margin-bottom: 24px;
+            margin-bottom: 8px;
             font-weight: 500;
         }
 
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            text-align: left;
-        }
-
-        label {
+        .subtitle {
             font-size: 14px;
             color: var(--md-sys-color-outline);
-            margin-left: 4px;
+            margin-bottom: 24px;
         }
 
-        input[type="text"] {
+        /* App Grid Layout */
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 16px;
             width: 100%;
-            padding: 16px;
-            border: 1px solid var(--md-sys-color-outline);
-            border-radius: var(--radius-md);
-            font-size: 16px;
-            box-sizing: border-box;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        input[type="text"]:focus {
-            border-color: var(--md-sys-color-primary);
-            border-width: 2px;
-            padding: 15px; /* adjust for border width */
         }
 
-        button.primary-btn {
-            background-color: var(--md-sys-color-primary);
-            color: var(--md-sys-color-on-primary);
-            border: none;
-            padding: 14px 24px;
-            border-radius: 100px;
-            font-size: 16px;
-            font-weight: 500;
+        .app-btn {
+            background-color: var(--md-sys-color-surface);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            color: var(--md-sys-color-on-surface);
+            padding: 20px 12px;
+            border-radius: var(--radius-md);
             cursor: pointer;
-            margin-top: 16px;
-            display: inline-flex;
+            font-weight: 700;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            transition: opacity 0.2s;
+            gap: 12px;
+            min-height: 100px;
         }
-        button.primary-btn:hover {
-            opacity: 0.9;
+        .app-btn:hover {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border-color: var(--md-sys-color-primary);
+            transform: translateY(-4px);
             box-shadow: var(--shadow-2);
+        }
+        .app-btn:active {
+            transform: translateY(-2px);
+        }
+
+        .app-btn .material-symbols-rounded {
+            font-size: 32px;
         }
 
         /* --- Loading View --- */
@@ -170,7 +168,8 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            max-width: 250px;
+            max-width: 300px;
+            text-align: left;
         }
         .back-btn {
             background: none;
@@ -181,9 +180,11 @@
             align-items: center;
             font-size: 14px;
             padding: 8px;
+            border-radius: 50px;
+            transition: background 0.2s;
         }
         .back-btn:hover {
-            text-decoration: underline;
+            background-color: #f0f4f8;
         }
 
         /* Status Cards */
@@ -248,6 +249,18 @@
             color: var(--md-sys-color-outline);
         }
 
+        button.primary-btn {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        button.primary-btn:hover { opacity: 0.9; }
+
         /* Color Modifiers */
         .color-green { background-color: var(--status-green-bg); color: var(--status-green-fg); }
         .color-red { background-color: var(--status-red-bg); color: var(--status-red-fg); }
@@ -266,18 +279,21 @@
 
     <main class="container">
         
-        <!-- 1. App Selector View -->
+        <!-- 1. App Selector View (List from JSON) -->
         <div id="selector-view" class="card fade-in">
             <span class="material-symbols-rounded" style="font-size: 48px; color: var(--md-sys-color-primary); margin-bottom: 16px;">dns</span>
             <h1>ステータス確認</h1>
-            <div class="input-group">
-                <label for="app-name-input">アプリID / 名前を入力</label>
-                <!-- Enterキー対応を追加 -->
-                <input type="text" id="app-name-input" placeholder="例: my-app-01" onkeydown="handleInputKey(event)">
-                <button onclick="startCheck()" class="primary-btn">
-                    確認する
-                    <span class="material-symbols-rounded">arrow_forward</span>
-                </button>
+            <p class="subtitle">確認したいサービスを選択してください</p>
+            
+            <!-- ここにJSでボタンが生成されます -->
+            <div id="app-list-container" class="app-grid">
+                <div class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></div>
+            </div>
+
+            <!-- 読み込み失敗時の表示 -->
+            <div id="app-list-error" class="hidden" style="margin-top:20px; color: var(--status-red-fg);">
+                <p>アプリ一覧を読み込めませんでした。</p>
+                <button onclick="loadAppList()" class="primary-btn">再読み込み</button>
             </div>
         </div>
 
@@ -290,10 +306,11 @@
         <!-- 3. Status Display View -->
         <div id="status-view" class="card hidden">
             <div class="status-header">
+                <!-- 人間に読みやすい名前を表示 -->
                 <div class="app-title" id="display-app-name">AppName</div>
                 <button onclick="resetView()" class="back-btn">
                     <span class="material-symbols-rounded">arrow_back</span>
-                    戻る
+                    一覧へ戻る
                 </button>
             </div>
 
@@ -337,7 +354,7 @@
                 <p id="error-text" style="font-size: 14px; margin: 0 0 8px 0; line-height: 1.5;">情報の取得に失敗しました。</p>
             </div>
             <button onclick="resetView()" class="primary-btn" style="margin-top: 24px; background-color: #d32f2f; width: 100%;">
-                戻って再試行
+                一覧に戻る
             </button>
         </div>
 
@@ -349,66 +366,106 @@
         const loadingView = document.getElementById('loading-view');
         const statusView = document.getElementById('status-view');
         const errorView = document.getElementById('error-view');
-        const appInput = document.getElementById('app-name-input');
+        const listContainer = document.getElementById('app-list-container');
+        const listError = document.getElementById('app-list-error');
 
-        // Initial Load Check
+        // Initial Load
         window.addEventListener('load', () => {
             const params = new URLSearchParams(window.location.search);
             const app = params.get('app');
 
             if (app) {
-                // デコードして表示
-                try {
-                    appInput.value = decodeURIComponent(app);
-                    fetchStatus(appInput.value);
-                } catch(e) {
-                    appInput.value = app;
-                    fetchStatus(app);
-                }
+                // URL指定がある場合は直接ステータス確認へ
+                // (名前がわからないので、とりあえずIDを表示名として渡すか、
+                // 必要ならここでapp.jsonをフェッチして名前解決することも可能ですが
+                // 簡略化のためIDを使用します)
+                const decodedApp = decodeURIComponent(app);
+                fetchStatus(decodedApp, decodedApp); // 第2引数は表示名
+            } else {
+                // 指定がなければ一覧を読み込む
+                loadAppList();
             }
         });
 
-        // Event Handler for Enter Key
-        function handleInputKey(event) {
-            if (event.key === 'Enter') {
-                startCheck();
+        // 1. Load App List from app.json
+        async function loadAppList() {
+            listError.classList.add('hidden');
+            // スピナー表示
+            listContainer.innerHTML = '<div class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></div>';
+
+            try {
+                // キャッシュ回避のタイムスタンプ付与
+                const res = await fetch(`./app.json?t=${Date.now()}`);
+                if (!res.ok) throw new Error(`app.json load failed: ${res.status}`);
+                
+                const apps = await res.json();
+                renderAppList(apps);
+
+            } catch (e) {
+                console.error(e);
+                listContainer.innerHTML = ''; // クリア
+                listError.classList.remove('hidden');
             }
         }
 
-        // --- Core Functions ---
+        function renderAppList(apps) {
+            listContainer.innerHTML = ''; // クリア
 
-        function startCheck() {
-            const appName = appInput.value.trim();
-            if (!appName) return alert('アプリ名を入力してください');
-            
-            // URLエンコードを行う (重要: スペースや記号対策)
-            const safeAppName = encodeURIComponent(appName);
+            apps.forEach(app => {
+                // app = { anH: "表示名", anC: "ディレクトリID" }
+                
+                const btn = document.createElement('button');
+                btn.className = 'app-btn';
+                btn.onclick = () => selectApp(app.anC, app.anH);
 
-            // ブラウザのURLを更新（履歴に追加）
+                // アイコン (固定ですが、jsonにicon指定があればそれを使うよう拡張可能)
+                const icon = document.createElement('span');
+                icon.className = 'material-symbols-rounded';
+                icon.innerText = 'apps'; // デフォルトアイコン
+                
+                const label = document.createElement('span');
+                label.innerText = app.anH; // 人間に表示する名前
+
+                btn.appendChild(icon);
+                btn.appendChild(label);
+                
+                listContainer.appendChild(btn);
+            });
+        }
+
+        // 2. Select App Logic
+        function selectApp(appId, appNameHuman) {
+            // URLを更新 (?app=ID)
             const url = new URL(window.location);
-            url.searchParams.set('app', safeAppName);
+            // URLにはID (anC) を入れる
+            url.searchParams.set('app', encodeURIComponent(appId));
             window.history.pushState({}, '', url);
 
-            fetchStatus(appName);
+            // ステータス取得開始 (表示名には anH を渡す)
+            fetchStatus(appId, appNameHuman);
         }
 
         function resetView() {
-            // URLパラメータを削除
+            // URLパラメータ削除
             const url = new URL(window.location);
             url.searchParams.delete('app');
             window.history.pushState({}, '', url);
 
+            // 一覧がまだ読み込まれていない、あるいは消えている場合は再読み込み
+            if (listContainer.children.length === 0 || listContainer.querySelector('.spinner')) {
+                loadAppList();
+            }
+            
             showView('selector');
         }
 
         function showView(viewName) {
-            // 全てのビューを非表示にし、アニメーションクラスをリセット
+            // 全非表示
             [selectorView, loadingView, statusView, errorView].forEach(el => {
                 el.classList.add('hidden');
                 el.classList.remove('fade-in');
             });
 
-            // 表示対象を選択
             let target = null;
             if (viewName === 'selector') target = selectorView;
             else if (viewName === 'loading') target = loadingView;
@@ -417,35 +474,31 @@
 
             if (target) {
                 target.classList.remove('hidden');
-                // リフローを強制してアニメーションを再始動させる
-                void target.offsetWidth; 
-                // loading以外はフェードインアニメーションを適用
-                if(viewName !== 'loading') {
-                    target.classList.add('fade-in');
-                }
+                void target.offsetWidth; // リフロー
+                if(viewName !== 'loading') target.classList.add('fade-in');
             }
         }
 
-        async function fetchStatus(appName) {
+        // 3. Fetch Status
+        async function fetchStatus(appId, displayName) {
             showView('loading');
             
-            // エンコード処理
-            const safeAppName = encodeURIComponent(appName);
-            const targetUrl = `https://pipocorp-japan.github.io/StatusP/${safeAppName}/info.json`;
+            const safeAppId = encodeURIComponent(appId);
+            const targetUrl = `https://pipocorp-japan.github.io/StatusP/${safeAppId}/info.json`;
 
             try {
-                // タイムスタンプをつけてキャッシュ回避
-                const response = await fetch(`${targetUrl}?t=${new Date().getTime()}`);
+                const response = await fetch(`${targetUrl}?t=${Date.now()}`);
                 
                 if (!response.ok) {
                     if (response.status === 404) {
-                        throw new Error(`アプリID "${appName}" が見つかりませんでした。\nIDが正しいか確認してください。`);
+                        throw new Error(`指定されたID (${appId}) の情報が見つかりません。`);
                     }
-                    throw new Error(`サーバーエラーが発生しました (Status: ${response.status})`);
+                    throw new Error(`サーバーエラー (Status: ${response.status})`);
                 }
 
                 const data = await response.json();
-                renderStatus(appName, data);
+                // データの表示 (表示名を使用)
+                renderStatus(displayName, data);
                 showView('status');
 
             } catch (error) {
@@ -455,22 +508,20 @@
             }
         }
 
-        function renderStatus(appName, data) {
-            // アプリ名設定
-            document.getElementById('display-app-name').innerText = appName;
+        function renderStatus(displayName, data) {
+            // タイトル設定
+            document.getElementById('display-app-name').innerText = displayName;
 
-            // 1. メインステータス判定
+            // メインステータス
             const statusInfo = getStatusInfo(data.status);
             const badge = document.getElementById('main-status-badge');
             
-            // クラスのリセットと適用
             badge.className = 'status-badge-large ' + statusInfo.colorClass;
-
             document.getElementById('main-status-icon').innerText = statusInfo.icon;
             document.getElementById('main-status-text').innerText = statusInfo.text;
             document.getElementById('main-status-detail').innerText = statusInfo.desc;
 
-            // 2. InvokeLLM ステータス
+            // InvokeLLM
             const llmEl = document.getElementById('invokellm-status');
             if (data.invokellm_available) {
                 llmEl.innerText = '使用可能';
@@ -480,90 +531,61 @@
                 llmEl.className = 'info-value text-red';
             }
 
-            // 3. Webpage ステータス
+            // WebPage
             const webEl = document.getElementById('webpage-status');
             const webStatusInfo = getStatusInfo(data.webpage_status);
             webEl.innerText = webStatusInfo.text;
             
-            // Webpage用の簡易色分け
             const webCode = Math.floor(parseFloat(data.webpage_status));
             if (webCode === 0) webEl.className = 'info-value text-green';
             else if (webCode === 3) webEl.className = 'info-value text-blue';
             else webEl.className = 'info-value text-red';
 
-            // 4. 日時フォーマット (yyyy-mm-dd-hh-mm-ss 対応)
+            // 日時
             const dateStr = data.last_updated || "";
             const parts = dateStr.split('-');
             
             if (parts.length >= 6) {
-                // yyyy/mm/dd hh:mm:ss 形式に変換
                 const fmtDate = `${parts[0]}/${parts[1]}/${parts[2]} ${parts[3]}:${parts[4]}:${parts[5]}`;
                 document.getElementById('last-updated-time').innerText = fmtDate;
             } else {
-                // フォーマットが一致しない場合はそのまま表示
                 document.getElementById('last-updated-time').innerText = dateStr || "不明";
             }
         }
 
         function getStatusInfo(statusCode) {
             const code = parseFloat(statusCode);
-            // 数値でない場合は不明として扱う
-            if (isNaN(code)) {
-                return {
-                    text: '不明',
-                    desc: 'ステータス情報を取得できませんでした',
-                    colorClass: 'color-gray',
-                    icon: 'help'
-                };
-            }
+            if (isNaN(code)) return { text:'不明', desc:'データなし', colorClass:'color-gray', icon:'help' };
 
             const intCode = Math.floor(code);
             const isDecimal = code % 1 !== 0;
 
-            let result = {
-                text: '不明',
-                desc: 'ステータスを判定できません',
-                colorClass: 'color-gray',
-                icon: 'help'
-            };
+            let result = { text:'不明', desc:'判定不能', colorClass:'color-gray', icon:'help' };
 
             switch (intCode) {
                 case 0:
-                    result = {
-                        text: '正常動作中',
-                        desc: 'すべてのシステムが稼働しています',
-                        colorClass: 'color-green',
-                        icon: 'check_circle'
-                    };
+                    result = { text:'正常動作中', desc:'全てのシステムが稼働しています', colorClass:'color-green', icon:'check_circle' };
                     break;
                 case 1:
                     result = {
                         text: isDecimal ? '停止 (調査中)' : '停止',
                         desc: isDecimal ? '現在、原因を調査しています' : '重大なエラーが発生しています (未着手)',
-                        colorClass: 'color-red',
-                        icon: 'error'
+                        colorClass: 'color-red', icon:'error'
                     };
                     break;
                 case 2:
                     result = {
                         text: isDecimal ? '一部停止 (調査中)' : '一部停止',
                         desc: '主要機能は使用可能ですが不安定です',
-                        colorClass: 'color-orange',
-                        icon: 'warning'
+                        colorClass: 'color-orange', icon:'warning'
                     };
                     break;
                 case 3:
-                    result = {
-                        text: 'メンテナンス中',
-                        desc: '現在作業を行っています',
-                        colorClass: 'color-blue',
-                        icon: 'build'
-                    };
+                    result = { text:'メンテナンス中', desc:'現在作業を行っています', colorClass:'color-blue', icon:'build' };
                     break;
             }
             return result;
         }
-
     </script>
 </body>
 </html>
